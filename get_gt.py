@@ -1,7 +1,7 @@
 from pathlib import Path
 import json 
 
-ROOTDIR = Path("/workingspace_aiclub/WorkingSpace/Personal/quannh/Project/US/NLP/semi/data/Pages")
+ROOTDIR = Path("./data/Pages")
 
 dic = {}
 
