@@ -12,6 +12,7 @@ conda create -n paddle python==3.10 -y
 conda activate paddle
 pip install paddlepaddle-gpu
 pip install paddleocr[all]
+pip install jiwer
 ```
 QUAN TRỌNG: Ta cần tạo file chứa groundtruth được xử lí để dễ truy vấn: `./data/gt.json` từ dataset để đánh giá CER
 ```
