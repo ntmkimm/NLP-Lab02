@@ -76,40 +76,44 @@ with open(gt_file, "r") as fi:
     gt_data = json.load(fi)
 
 # input_dir = patches / "DVSKTT-1 Quyen thu"
+img_paths = []
 for input_dir in sorted(patches.iterdir()):
     if not input_dir.is_dir() or input_dir.name == "Transcriptions":
             continue
     for img_path in sorted(input_dir.glob("*.jpg")):
         splits = img_path.stem.split("_")
-        try:
-            file_id, sect, page_id, col = "_".join(splits[:-3]), splits[-3], splits[-2], splits[-1]
-            _id = f"{file_id}.{sect}.{page_id}.{col}"
-        except:
-            continue
+        img_paths.append(img_path)
+
+for img_path in img_paths:
+    try:
+        file_id, sect, page_id, col = "_".join(splits[:-3]), splits[-3], splits[-2], splits[-1]
+        _id = f"{file_id}.{sect}.{page_id}.{col}"
+    except:
+        continue
+    
+    # augment rotate
+    high_res_img = process_image_resolution(img_path, scale_factor=scale_factor)
+    high_res_img_rotated = cv2.rotate(high_res_img, cv2.ROTATE_90_COUNTERCLOCKWISE)
+    
+    if high_res_img is not None:
+        page_res = ocr.predict(high_res_img) 
+        page_res_rotated = ocr.predict(high_res_img_rotated)
+        gt = gt_data[_id]
+        # print(f"{len(page_res_rotated)} > {len(page_res)}")
+        results = page_res_rotated if len(" ".join(page_res_rotated[0]["rec_texts"])) > len(" ".join(page_res[0]["rec_texts"])) else page_res
         
-        # augment rotate
-        high_res_img = process_image_resolution(img_path, scale_factor=scale_factor)
-        high_res_img_rotated = cv2.rotate(high_res_img, cv2.ROTATE_90_COUNTERCLOCKWISE)
-        
-        if high_res_img is not None:
-            page_res = ocr.predict(high_res_img) 
-            page_res_rotated = ocr.predict(high_res_img_rotated)
-            gt = gt_data[_id]
-            # print(f"{len(page_res_rotated)} > {len(page_res)}")
-            results = page_res_rotated if len(" ".join(page_res_rotated[0]["rec_texts"])) > len(" ".join(page_res[0]["rec_texts"])) else page_res
-            
-            for res in results:
-                res.save_to_img(f"output/{_id}.jpg")
-                # res.save_to_json(f"output/{img_path.stem}.json")
-                res = res._save_funcs[0].__self__
-                polys = [p.tolist() for p in res["rec_polys"]]
-                dic = {
-                    "ID": _id,
-                    "HanChar": " ".join(res["rec_texts"]), # merge các kết quả lại với nhau
-                    "GroundTruth": gt["label"],
-                    "ImageBox": process_polygon(polys=polys, scale_factor=scale_factor, gt_poly=gt["poly"]),
-                }
-                result.append(dic)
+        for res in results:
+            res.save_to_img(f"output/{_id}.jpg")
+            # res.save_to_json(f"output/{img_path.stem}.json")
+            res = res._save_funcs[0].__self__
+            polys = [p.tolist() for p in res["rec_polys"]]
+            dic = {
+                "ID": _id,
+                "HanChar": " ".join(res["rec_texts"]), # merge các kết quả lại với nhau
+                "GroundTruth": gt["label"],
+                "ImageBox": process_polygon(polys=polys, scale_factor=scale_factor, gt_poly=gt["poly"]),
+            }
+            result.append(dic)
 
 df = pd.DataFrame(result)
 df["GroundTruth"] = df["GroundTruth"].fillna("").astype(str)

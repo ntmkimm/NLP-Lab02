@@ -41,3 +41,5 @@ for input_folder in sorted(ROOTDIR.iterdir()):
 
 with open("./data/gt.json", "w", encoding="utf-8") as f:
     json.dump(dic, f, ensure_ascii=False, indent=2)
+    
+print(len(dic))
